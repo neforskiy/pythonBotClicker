@@ -25,3 +25,4 @@ def db_connect(Query):
     база данных: {connection.database}""")
     except Error as e:
         print(f"Ошибка подключения к серверу:\n{e}")
+        connection.close()

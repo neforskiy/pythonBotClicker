@@ -10,7 +10,8 @@ from aiogram.fsm.context import FSMContext
 import random
 import re
 
-from states import State, UserState
+from utils import *
+from states import UserState, ExchangeState
 from db import db_connect
 import kb
 import text
@@ -22,13 +23,13 @@ router = Router()
 
 @router.message(Command('add_admin'))
 async def add_admin(msg: Message, command: CommandObject):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
 
-    admin_id_to_check = str(State.id)
+    admin_id_to_check = str(UserState.id)
 
     with open('admins_id.txt') as file:
         content = file.read()
@@ -90,13 +91,13 @@ async def add_admin(msg: Message, command: CommandObject):
 
 @router.message(Command('help_admin'))
 async def list_of_admin_commands(msg: Message):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
 
-    admin_id = str(State.id)
+    admin_id = str(UserState.id)
 
     with open('admins_id.txt') as file:
         content = file.read()
@@ -118,13 +119,13 @@ async def list_of_admin_commands(msg: Message):
 
 @router.message(Command('admin'))
 async def admin(msg: Message):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
 
-    admin_id = str(State.id)
+    admin_id = str(UserState.id)
         
 
     with open('admins_id.txt') as file:
@@ -140,16 +141,16 @@ async def admin(msg: Message):
 
 @router.message(Command("start"))
 async def start_handler(msg: Message):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
     await msg.answer(text.greet.format(name=msg.from_user.full_name), reply_markup=kb.menu)
     Query = f"""
     INSERT INTO clicks (user_id, total_clicks)
     VALUES
-    ({State.id}, 0);
+    ({UserState.id}, 0);
 """
     db_connect(Query)
 
@@ -157,83 +158,42 @@ async def start_handler(msg: Message):
 @router.message(F.text == "Выйти в меню")
 @router.message(F.text == "◀️ Выйти в меню")
 async def menu(msg: Message):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
     Query = f"""
     INSERT INTO clicks (user_id, total_clicks)
     VALUES
-    ({State.id}, 0);
+    ({UserState.id}, 0);
 """
     db_connect(Query)
     await msg.answer(text.menu, reply_markup=kb.menu)
 
 @router.callback_query(F.data == "click")
 async def click(clbck: CallbackQuery):
-    State.id = clbck.from_user.id
-    State.first_name = clbck.from_user.first_name
-    State.last_name = clbck.from_user.last_name
-    State.is_premium = clbck.from_user.is_premium
-    State.is_bot = clbck.from_user.is_bot
+    UserState.id = clbck.from_user.id
+    UserState.first_name = clbck.from_user.first_name
+    UserState.last_name = clbck.from_user.last_name
+    UserState.is_premium = clbck.from_user.is_premium
+    UserState.is_bot = clbck.from_user.is_bot
     Query = f"""
     INSERT INTO clicks (user_id, total_clicks)
     VALUES
-    ({State.id}, 0);
+    ({UserState.id}, 0);
 """
     db_connect(Query)
-    rand_word = random.randint(0, 17)
-    if(rand_word == 1):
-        word = "тапнули"
-    elif(rand_word == 2):
-        word = "кликнули"
-    elif(rand_word == 3):
-        word = "нажали"
-    elif(rand_word == 4):
-        word = "жмакнули"
-    if(rand_word == 5):
-        word = "тапнули"
-    elif(rand_word == 6):
-        word = "кликнули"
-    elif(rand_word == 7):
-        word = "нажали"
-    elif(rand_word == 8):
-        word = "жмакнули"
-    if(rand_word == 9):
-        word = "тапнули"
-    elif(rand_word == 10):
-        word = "кликнули"
-    elif(rand_word == 11):
-        word = "нажали"
-    elif(rand_word == 12):
-        word = "жмакнули"
-    if(rand_word == 13):
-        word = "тапнули"
-    elif(rand_word == 14):
-        word = "кликнули"
-    elif(rand_word == 15):
-        word = "нажали"
-    elif(rand_word == 16):
-        word = "жмакнули"
-    elif(rand_word == 17):
-        Query = f"""
-UPDATE clicks
-SET total_clicks = total_clicks + 100
-WHERE user_id = {State.id};
-"""
-        db_connect(Query)
-        word = "получили +100 кликов на счёт(это пасхалка) и ударили по кнопке"
-    # await clbck.message.answer(f"{User.id}")
-    Query = f"""
+
+    Query1 = f"""
 UPDATE clicks
 SET total_clicks = total_clicks + 1
-WHERE user_id = {State.id};
+WHERE user_id = {UserState.id};
 """
-    db_connect(Query)
+    db_connect(Query1)
     Query2 = f"""
 SELECT total_clicks FROM clicks
-WHERE user_id = {State.id}
+WHERE user_id = {UserState.id}
 """
     result = db_connect(Query2)
     # print(f"END RESULT: {endResult}")
@@ -245,19 +205,26 @@ WHERE user_id = {State.id}
     res_end_len_minus_1 = res_end_len - 1
     result_end = res_end[res_end_len_minus_1]
 
-    await clbck.message.answer(f"Вы {word} {res_end} раз(-a).")
+    await clbck.message.answer(f"Вы кликнули {res_end} раз(-a).")
 @router.callback_query(F.data == "balance")
 async def balance(clbck: CallbackQuery):
-    State.id = clbck.from_user.id
-    State.first_name = clbck.from_user.first_name
-    State.last_name = clbck.from_user.last_name
-    State.is_premium = clbck.from_user.is_premium
-    State.is_bot = clbck.from_user.is_bot
+    UserState.id = clbck.from_user.id
+    UserState.first_name = clbck.from_user.first_name
+    UserState.last_name = clbck.from_user.last_name
+    UserState.is_premium = clbck.from_user.is_premium
+    UserState.is_bot = clbck.from_user.is_bot
+
+    Query1 = f"""
+SELECT total_NOT FROM NOTs
+WHERE user_id = {str(UserState.id)}
+"""
 
     Query2 = f"""
 SELECT total_clicks FROM clicks
-WHERE user_id = {str(State.id)}
+WHERE user_id = {str(UserState.id)}
 """
+    result2 = db_connect(Query1)
+    amount_NOT = await Delete1stAndLastAndPreLastSymbolFromDBsQuery(result2)
     result = db_connect(Query2)
     result = str(result)
     res_new = result[:-1]
@@ -266,21 +233,88 @@ WHERE user_id = {str(State.id)}
     res_end_len = len(res_end)
     res_end_len_minus_1 = res_end_len - 1
     result_end = res_end[res_end_len_minus_1]
-    await clbck.message.reply(f"💰 У вас на счету {res_end} кликов. Для обмена в NOT нажмите кнопку на клавиатуре. 💰",  reply_markup=kb.exchange)
+    await clbck.message.reply(f"💰 У вас на счету {res_end} кликов и {amount_NOT} NOT. Если желаете обменять в NOT нажмите кнопку на клавиатуре. 💰",  reply_markup=kb.exchange)
 @router.message(F.text == "💱 Обменять")
 async def exchange(msg: Message, state: FSMContext):
-    State.id = msg.from_user.id
-    State.first_name = msg.from_user.first_name
-    State.last_name = msg.from_user.last_name
-    State.is_premium = msg.from_user.is_premium
-    State.is_bot = msg.from_user.is_bot
-    await state.set_state(UserState.exchange_amount)
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
+    await state.set_state(ExchangeState.exchange_amount)
     await msg.answer('Напишите количество кликов которое хотите обменять в $NOT: 💱')
-    need_message = msg.text
-    print(need_message)
-    
-@router.message(UserState.exchange_amount)
+
+@router.callback_query(F.data == "exchange")
+async def exchangeCLBCK(clbck: CallbackQuery, state: FSMContext):
+    UserState.id = clbck.from_user.id
+    UserState.first_name = clbck.from_user.first_name
+    UserState.last_name = clbck.from_user.last_name
+    UserState.is_premium = clbck.from_user.is_premium
+    UserState.is_bot = clbck.from_user.is_bot
+    await state.set_state(ExchangeState.exchange_amount)
+    await clbck.message.answer('Напишите количество кликов которое хотите обменять в $NOT: 💱')
+
+@router.message(ExchangeState.exchange_amount)
 async def exchange_amount_handler(msg: Message, state: FSMContext) -> None:
+    UserState.id = msg.from_user.id
+    UserState.first_name = msg.from_user.first_name
+    UserState.last_name = msg.from_user.last_name
+    UserState.is_premium = msg.from_user.is_premium
+    UserState.is_bot = msg.from_user.is_bot
     amount = msg.text
-    print(f"Вы ввели {amount} клика(-ов)?")
+    QuerySELall = f"""
+SELECT total_clicks FROM clicks
+WHERE user_id = {str(UserState.id)}
+"""
+    result = db_connect(QuerySELall)
+    result = str(result)
+    res_new = result[:-1]
+    res_middle = res_new[:-1]
+    res_end = res_middle[1:]
+    res_end = int(res_end)
+    amount = int(amount)
+    if(amount > res_end):
+        await msg.reply("Вы ввели число больше, чем у вас кликов!")
+    elif(amount <= res_end):
+        QueryToNOT1 = f"""
+UPDATE clicks
+SET total_clicks = total_clicks - {amount}
+WHERE user_id = {str(UserState.id)}
+"""
+    amount_NOT = amount * 0.00002
+    amount_NOT = str(amount_NOT)
+    amount_NOT = amount_NOT[:-10]
+    QueryToCheckDBs = f"""
+SELECT user_id from NOTs
+WHERE user_id = {str(UserState.id)}
+"""
+    checkDBs = db_connect(QueryToCheckDBs)
+    checkDBs = str(checkDBs)
+    if(checkDBs == "None"):
+        Query = f"""
+INSERT INTO NOTs (user_id, total_NOT)
+VALUES
+({str(UserState.id)}, 0)
+"""
+        db_connect(Query)
+    else:
+        # checkDBs = str(checkDBs)
+        # checkDBs_new = checkDBs[:-1]
+        # checkDBs_middle = checkDBs_new[:-1]
+        # checkDBs_end = checkDBs_middle[1:]
+        # checkDBs_end = str(checkDBs_end)
+#         QueryNew = f"""
+# UPDATE `NOTs`
+# SET `total_NOT` = `total_NOT` + {amount_NOT}
+# WHERE `NOTs`.`user_id` = {str(UserState.id)};
+# """
+        db_connect(QueryToNOT1)
+        QueryNew = """
+UPDATE `NOTs` 
+SET `total_NOT` = `total_NOT` + 97.323960000000000000000000000000
+WHERE `NOTs`.`total_NOT` = "1265852777";
+"""
+        db_connect(QueryNew)
+        await msg.reply("Успешно!")
+    
     await state.clear()
