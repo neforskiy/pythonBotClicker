@@ -6,6 +6,11 @@ from aiogram.types.callback_query import CallbackQuery
 from aiogram.types.user import User
 from aiogram.filters.command import CommandObject
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.deep_linking import create_start_link, decode_payload
+from aiogram import Bot, Dispatcher
+from aiogram.enums.parse_mode import ParseMode
+from aiogram.client.default import DefaultBotProperties
+import base64
 
 import random
 import re
@@ -18,6 +23,7 @@ import text
 import config
 
 router = Router()
+bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 # Admin commands
 
@@ -147,13 +153,42 @@ async def start_handler(msg: Message):
     UserState.is_premium = msg.from_user.is_premium
     UserState.is_bot = msg.from_user.is_bot
     await msg.answer(text.greet.format(name=msg.from_user.full_name), reply_markup=kb.menu)
-    Query = f"""
-    INSERT INTO clicks (user_id, total_clicks)
-    VALUES
-    ({UserState.id}, 0);
-"""
-    db_connect(Query)
 
+    Query = f"""
+SELECT * from `users` 
+WHERE `users`.`user_id` = {str(UserState.id)}
+"""
+    result = db_connect(Query)
+    print(Database.user_exists(str(UserState.id)))
+    if Database.user_exists(str(UserState.id)) == False:
+        unique_code = extract_unique_code(msg.text)
+        if unique_code:
+            msgtext = msg.text
+            id_to_decode = msgtext[7:]
+            print(id_to_decode)
+            decoded_string = decode_base64(id_to_decode)
+            print(decoded_string)
+            if str(decoded_string) == str(UserState.id):
+                Database.add_user(str(UserState.id), None)
+                await msg.answer(f"Нельзя регистрироваться по своей ссылке!")
+            else:
+                Database.add_user(str(UserState.id), str(decoded_string))
+                await msg.answer(f"Вас пригласил юзер с айди: {decoded_string}.\nСсылка в его профиль: <a href=\"tg://user?id={str(decoded_string)}\">Только для телефонов.</a>", disable_web_page_preview=True, parse_mode="HTML")
+                try:
+                    await bot.send_message(str(decoded_string), "По вашей ссылке зарегистрировался новый реферал! Вам начислено 100 тысяч кликов!")
+                    Queryy = f"""
+UPDATE `clicks`
+SET `clicks`.`total_clicks` = `clicks`.`total_clicks` + 100000
+WHERE `clicks`.`user_id` = {str(decoded_string)}
+"""
+                    db_connect(Queryy)
+                except:
+                    pass
+        else:
+            Database.add_user(str(UserState.id), None)
+            await msg.answer("Вы пришли сами")
+    else:
+        await msg.answer("Вы уже зарегистрированы.")
 @router.message(F.text == "Меню")
 @router.message(F.text == "Выйти в меню")
 @router.message(F.text == "◀️ Выйти в меню")
@@ -224,7 +259,7 @@ SELECT total_clicks FROM clicks
 WHERE user_id = {str(UserState.id)}
 """
     result2 = db_connect(Query1)
-    amount_NOT = await Delete1stAndLastAndPreLastSymbolFromDBsQuery(result2)
+    amount_NOT = Delete1stAndLastAndPreLastSymbolFromDBsQuery(result2)
     result = db_connect(Query2)
     result = str(result)
     res_new = result[:-1]
@@ -233,6 +268,9 @@ WHERE user_id = {str(UserState.id)}
     res_end_len = len(res_end)
     res_end_len_minus_1 = res_end_len - 1
     result_end = res_end[res_end_len_minus_1]
+    symbolsToRemove = "Decimal('')"
+    for symbol in symbolsToRemove:
+        amount_NOT = amount_NOT.replace(symbol, "")
     await clbck.message.reply(f"💰 У вас на счету {res_end} кликов и {amount_NOT} NOT. Если желаете обменять в NOT нажмите кнопку на клавиатуре. 💰",  reply_markup=kb.exchange)
 @router.message(F.text == "💱 Обменять")
 async def exchange(msg: Message, state: FSMContext):
@@ -282,8 +320,7 @@ SET total_clicks = total_clicks - {amount}
 WHERE user_id = {str(UserState.id)}
 """
     amount_NOT = amount * 0.00002
-    amount_NOT = str(amount_NOT)
-    amount_NOT = amount_NOT[:-10]
+    amount_NOT = float(amount_NOT)
     QueryToCheckDBs = f"""
 SELECT user_id from NOTs
 WHERE user_id = {str(UserState.id)}
@@ -309,12 +346,19 @@ VALUES
 # WHERE `NOTs`.`user_id` = {str(UserState.id)};
 # """
         db_connect(QueryToNOT1)
-        QueryNew = """
-UPDATE `NOTs` 
-SET `total_NOT` = `total_NOT` + 97.323960000000000000000000000000
-WHERE `NOTs`.`total_NOT` = "1265852777";
+        QueryNew = f"""
+UPDATE NOTs
+SET total_NOT = total_NOT + {amount_NOT}
+WHERE `NOTs`.`user_id` = "{str(UserState.id)}";
 """
         db_connect(QueryNew)
         await msg.reply("Успешно!")
-    
+
     await state.clear()
+
+@router.callback_query(F.data == "ref")
+async def referal_programm(clbck: CallbackQuery):
+    
+    link = await create_start_link(bot, str(clbck.from_user.id), encode=True)
+    amount = Delete1stAndLastAndPreLastSymbolFromDBsQuery(str(Database.count_referals(str(clbck.from_user.id))))
+    await clbck.message.answer(f"Ваша пригласительная ссылка: {link}\nВы пригласили: {amount} пользователей.")
